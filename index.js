@@ -28,12 +28,29 @@ async function run() {
 run();
 
 
+const Categories = client.db('aero-db').collection('categories');
 const Users = client.db('aero-db').collection('users');
+
+
+app.get('/categories', async (req, res) => {
+  try {
+    const category = await Categories.find({}).toArray();
+    res.send({
+      success: true,
+      data: category
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
 
 
 app.post('/users', async (req, res) => {
   try {
-    console.log(req.body);
     const isExists = await Users.findOne({ email: req.body.email })
     if (isExists) {
       return res.send({
@@ -43,7 +60,6 @@ app.post('/users', async (req, res) => {
     }
 
     const user = await Users.insertOne(req.body);
-    console.log(user);
 
     res.send({
       success: true,
@@ -57,6 +73,7 @@ app.post('/users', async (req, res) => {
     })
   }
 })
+
 
 
 
