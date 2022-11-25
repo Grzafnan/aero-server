@@ -17,8 +17,6 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 
 
-
-
 // function run = async
 async function run() {
   try {
@@ -90,21 +88,26 @@ app.get('/categories', async (req, res) => {
 })
 
 
-app.post('/users', async (req, res) => {
+//Save user info and Generate JWT token
+app.put('/users/:email', async (req, res) => {
   try {
-    const isExists = await Users.findOne({ email: req.body.email })
-    if (isExists) {
-      return res.send({
-        success: false,
-        message: 'User already exists'
-      })
+    const email = req.params.email;
+    const user = req.body;
+
+    const filter = { email: email }
+    const option = { upsert: true }
+    const updateDoc = {
+      $set: user
     }
 
-    const user = await Users.insertOne(req.body);
+    const result = await Users.updateOne(filter, updateDoc, option);
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
+      expiresIn: '1d',
+    })
 
     res.send({
       success: true,
-      data: user
+      data: { result, token }
     })
   } catch (error) {
     console.log(error);
@@ -114,6 +117,8 @@ app.post('/users', async (req, res) => {
     })
   }
 })
+
+
 
 app.post('/bookings', async (req, res) => {
   try {
