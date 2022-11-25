@@ -145,6 +145,26 @@ app.put('/users/:email', async (req, res) => {
 })
 
 
+app.get('/users/:email', async (req, res) => {
+  try {
+    const email = req.params.email
+    const user = await Users.findOne({ email: email })
+    res.send({
+      success: true,
+      data: user
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+
+
+})
+
+
 // Get all Sellers API
 app.get('/all-sellers', async (req, res) => {
   try {
