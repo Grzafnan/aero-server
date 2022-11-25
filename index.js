@@ -28,10 +28,30 @@ async function run() {
 run();
 
 
+const Services = client.db('aero-db').collection('services');
 const Categories = client.db('aero-db').collection('categories');
 const Users = client.db('aero-db').collection('users');
 
+//services APi
+app.get('/services', async (req, res) => {
+  try {
+    const services = await Services.find({}).toArray();
+    res.send({
+      success: true,
+      data: services
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
 
+
+
+//Category API
 app.get('/categories', async (req, res) => {
   try {
     const category = await Categories.find({}).toArray();
