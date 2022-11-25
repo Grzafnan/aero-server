@@ -145,6 +145,22 @@ app.put('/users/:email', async (req, res) => {
 })
 
 
+// Get all Sellers API
+app.get('/all-sellers', async (req, res) => {
+  try {
+    const sellers = await Users.find({ role: 'Seller' }).toArray();
+    res.send({
+      success: true,
+      data: sellers
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
 
 app.post('/bookings', verifyJWT, async (req, res) => {
   try {
@@ -154,19 +170,14 @@ app.post('/bookings', verifyJWT, async (req, res) => {
       email: booking.userEmail,
       name: booking.name
     }
-
     const allReadyBooked = await Bookings.find(query).toArray();
-
     if (allReadyBooked?.length) {
       const message = `You already have a booking on ${booking.brand, booking.name}`
       res.send({ success: false, message })
       return;
     }
-
     const result = await Bookings.insertOne(booking);
-
-    console.log(result);
-
+    // console.log(result);
     res.send({
       success: true,
       data: result
