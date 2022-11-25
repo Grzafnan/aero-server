@@ -17,6 +17,32 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 
 
+function verifyJWT(req, res, next) {
+  // console.log(req);
+  const userJwtToken = req.headers.authorization;
+
+  if (!userJwtToken) {
+    return res.status(401).send({
+      success: false,
+      message: "Unauthorized access."
+    })
+  }
+
+  const token = userJwtToken.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({
+        success: false,
+        message: 'Forbidden access.'
+      })
+    }
+    req.decoded = decoded;
+    next();
+  })
+};
+
+
+
 // function run = async
 async function run() {
   try {
@@ -120,7 +146,7 @@ app.put('/users/:email', async (req, res) => {
 
 
 
-app.post('/bookings', async (req, res) => {
+app.post('/bookings', verifyJWT, async (req, res) => {
   try {
     const booking = req.body;
     const query = {
