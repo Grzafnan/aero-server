@@ -50,6 +50,23 @@ app.get('/services', async (req, res) => {
 })
 
 
+app.get('/services/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const service = await Services.find({ category_id: Number(id) }).toArray();
+    res.send({
+      success: true,
+      data: service
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
 
 //Category API
 app.get('/categories', async (req, res) => {
