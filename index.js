@@ -16,6 +16,9 @@ const uri = process.env.URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
+
+
+
 // function run = async
 async function run() {
   try {
@@ -30,6 +33,7 @@ run();
 
 const Services = client.db('aero-db').collection('services');
 const Categories = client.db('aero-db').collection('categories');
+const Bookings = client.db('aero-db').collection('bookings');
 const Users = client.db('aero-db').collection('users');
 
 //services APi
@@ -111,6 +115,39 @@ app.post('/users', async (req, res) => {
   }
 })
 
+app.post('/bookings', async (req, res) => {
+  try {
+    const booking = req.body;
+    const query = {
+      brand: booking.brand,
+      email: booking.userEmail,
+      name: booking.name
+    }
+
+    const allReadyBooked = await Bookings.find(query).toArray();
+
+    if (allReadyBooked?.length) {
+      const message = `You already have a booking on ${booking.brand, booking.name}`
+      res.send({ success: false, message })
+      return;
+    }
+
+    const result = await Bookings.insertOne(booking);
+
+    console.log(result);
+
+    res.send({
+      success: true,
+      data: result
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
 
 
 
