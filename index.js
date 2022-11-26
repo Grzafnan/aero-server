@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 require('dotenv').config();
 
@@ -193,6 +193,25 @@ app.get('/jwt', async (req, res) => {
   })
 });
 
+
+// Get Admin 
+
+app.get('/users/admin/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const user = await Users.findOne({ email })
+    res.send({ isAdmin: user?.role === 'Admin' })
+  } catch (error) {
+    console.log(error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
+
+
 app.get('/users/:email', async (req, res) => {
   try {
     const { email } = req.params
@@ -214,6 +233,7 @@ app.get('/users/:email', async (req, res) => {
 })
 
 
+
 // Get all Sellers API
 app.get('/all-sellers', async (req, res) => {
   try {
@@ -230,6 +250,30 @@ app.get('/all-sellers', async (req, res) => {
     })
   }
 })
+
+
+// Delete Seller 
+
+app.delete('/all-sellers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(id);
+    const user = await Users.deleteOne({ _id: ObjectId(id) });
+    res.send({
+      success: true,
+      data: user
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
+
+
 
 app.post('/bookings', verifyJWT, async (req, res) => {
   try {
