@@ -163,7 +163,7 @@ app.post('/users', async (req, res) => {
     }
 
     const user = await Users.insertOne(req.body);
-    console.log(user);
+    // console.log(user);
     res.send({
       success: true,
       data: user
@@ -183,7 +183,7 @@ app.get('/jwt', async (req, res) => {
   const email = req.query.email;
   const user = await Users.findOne({ email: email });
 
-  console.log(user);
+  // console.log(user);
 
   if (user) {
     const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
@@ -219,7 +219,7 @@ app.get('/users/:email', async (req, res) => {
     const { email } = req.params
 
     const result = await Users.findOne({ email: email })
-    console.log(result);
+    // console.log(result);
 
     res.send({
       success: true,
@@ -258,7 +258,7 @@ app.get('/all-sellers', verifyJWT, verifyAdmin, async (req, res) => {
 app.delete('/all-sellers/:id', verifyJWT, verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(id);
+    // console.log(id);
     const user = await Users.deleteOne({ _id: ObjectId(id) });
     res.send({
       success: true,
@@ -305,6 +305,34 @@ app.post('/bookings', verifyJWT, async (req, res) => {
   }
 })
 
+
+// Get Seller Products 
+app.get('/products/:id', verifyJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email } = req.query;
+    const user = await Users.findOne({ email: email });
+    console.log('user', user);
+    if (!user?.role === "Seller") {
+      return res.send({ success: false, message: 'Forbidden access' })
+    }
+    console.log('role-', user?.role)
+
+    const result = await Services.find({ sellerEmail: email, sellerId: id }).toArray();
+
+    res.send({
+      success: true,
+      data: result
+    })
+
+  } catch (error) {
+    console.log(error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
 
 
 app.get('', async (req, res) => {
