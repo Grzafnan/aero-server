@@ -61,31 +61,18 @@ const Bookings = client.db('aero-db').collection('bookings');
 const Users = client.db('aero-db').collection('users');
 
 
-// Verify Admin
-function verifyJWT(req, res, next) {
-  // console.log(req);
-  const userJwtToken = req.headers.authorization;
-
-  if (!userJwtToken) {
-    return res.status(401).send({
+// // Verify Admin
+const verifyAdmin = async (req, res, next) => {
+  const decodedEmail = req.decoded.email;
+  const user = await Users.findOne({ email: decodedEmail })
+  if (user?.role !== "Admin") {
+    res.status(403).send({
       success: false,
       message: "Unauthorized access."
     })
   }
-
-  const token = userJwtToken.split(' ')[1];
-  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
-    if (err) {
-      return res.status(403).send({
-        success: false,
-        message: 'Forbidden access.'
-      })
-    }
-    req.decoded = decoded;
-    next();
-  })
-};
-
+  next();
+}
 
 
 //services APi
@@ -109,10 +96,27 @@ app.get('/services', async (req, res) => {
 app.get('/services/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const service = await Services.find({ category_id: Number(id) }).toArray();
+    const service = await Services.find({ category: Number(id) }).toArray();
     res.send({
       success: true,
       data: service
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
+
+app.post('/add-services', verifyJWT, async (req, res) => {
+  try {
+    const result = await Services.insertOne(req.body)
+    res.send({
+      success: true,
+      data: result
     })
   } catch (error) {
     console.log(error.name, error.message);
@@ -195,7 +199,6 @@ app.get('/jwt', async (req, res) => {
 
 
 // Get Admin 
-
 app.get('/users/admin/:email', async (req, res) => {
   try {
     const { email } = req.params;
@@ -210,8 +213,7 @@ app.get('/users/admin/:email', async (req, res) => {
   }
 })
 
-
-
+//Get single User
 app.get('/users/:email', async (req, res) => {
   try {
     const { email } = req.params
@@ -235,7 +237,7 @@ app.get('/users/:email', async (req, res) => {
 
 
 // Get all Sellers API
-app.get('/all-sellers', async (req, res) => {
+app.get('/all-sellers', verifyJWT, verifyAdmin, async (req, res) => {
   try {
     const sellers = await Users.find({ role: 'Seller' }).toArray();
     res.send({
@@ -253,8 +255,7 @@ app.get('/all-sellers', async (req, res) => {
 
 
 // Delete Seller 
-
-app.delete('/all-sellers/:id', async (req, res) => {
+app.delete('/all-sellers/:id', verifyJWT, verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     console.log(id);
