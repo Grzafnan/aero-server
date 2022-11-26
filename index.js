@@ -60,6 +60,34 @@ const Categories = client.db('aero-db').collection('categories');
 const Bookings = client.db('aero-db').collection('bookings');
 const Users = client.db('aero-db').collection('users');
 
+
+// Verify Admin
+function verifyJWT(req, res, next) {
+  // console.log(req);
+  const userJwtToken = req.headers.authorization;
+
+  if (!userJwtToken) {
+    return res.status(401).send({
+      success: false,
+      message: "Unauthorized access."
+    })
+  }
+
+  const token = userJwtToken.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({
+        success: false,
+        message: 'Forbidden access.'
+      })
+    }
+    req.decoded = decoded;
+    next();
+  })
+};
+
+
+
 //services APi
 app.get('/services', async (req, res) => {
   try {
@@ -114,26 +142,27 @@ app.get('/categories', async (req, res) => {
 })
 
 
-//Save user info and Generate JWT token
-app.put('/users/:email', async (req, res) => {
-  try {
-    const email = req.params.email;
-    const user = req.body;
 
-    const filter = { email: email }
-    const option = { upsert: true }
-    const updateDoc = {
-      $set: user
+
+
+//Saved user in DB
+app.post('/users', async (req, res) => {
+  try {
+    console.log('body', req.body);
+    const isExists = await Users.findOne({ email: req.body.email })
+
+    if (isExists) {
+      return res.send({
+        success: false,
+        message: 'User already exists'
+      })
     }
 
-    const result = await Users.updateOne(filter, updateDoc, option);
-    const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
-      expiresIn: '1d',
-    })
-
+    const user = await Users.insertOne(req.body);
+    console.log(user);
     res.send({
       success: true,
-      data: { result, token }
+      data: user
     })
   } catch (error) {
     console.log(error);
@@ -145,23 +174,43 @@ app.put('/users/:email', async (req, res) => {
 })
 
 
+// get Token
+app.get('/jwt', async (req, res) => {
+  const email = req.query.email;
+  const user = await Users.findOne({ email: email });
+
+  console.log(user);
+
+  if (user) {
+    const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
+    return res.send({
+      success: true,
+      token: token
+    })
+  }
+  res.status(403).send({
+    token: 'Unauthorized access'
+  })
+});
+
 app.get('/users/:email', async (req, res) => {
   try {
-    const email = req.params.email
-    const user = await Users.findOne({ email: email })
+    const { email } = req.params
+
+    const result = await Users.findOne({ email: email })
+    console.log(result);
+
     res.send({
       success: true,
-      data: user
+      data: result
     })
+
   } catch (error) {
-    console.log(error.name, error.message);
     res.send({
       success: false,
       error: error.message
     })
   }
-
-
 })
 
 
