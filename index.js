@@ -288,8 +288,8 @@ app.put('/sellers/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
 
 
 
-// Delete Seller By Admin
-app.delete('/all-sellers/:id', verifyJWT, verifyAdmin, async (req, res) => {
+// Delete user By Admin
+app.delete('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
   try {
 
     const decoded = req.decoded;
@@ -316,17 +316,23 @@ app.delete('/all-sellers/:id', verifyJWT, verifyAdmin, async (req, res) => {
   }
 })
 
-
-app.get('/all-buyers/admin', verifyJWT, verifyAdmin, async (req, res) => {
+// Get all Sellers API
+app.get('/all-buyers/admin/', verifyJWT, verifyAdmin, async (req, res) => {
   try {
-    if (req.query.email !== req.decoded.email) {
-      return res.status(403).send({ success: false, message: 'Forbidden access' });
+
+    const decoded = req.decoded;
+    if (decoded.email !== req.query.email) {
+      return res.status(403).send({
+        success: false,
+        message: 'Unauthorized Access'
+      })
     }
 
-    const buyers = await Users.find({ role: 'User' }).toArray();
+
+    const sellers = await Users.find({ role: 'User' }).toArray();
     res.send({
       success: true,
-      data: buyers
+      data: sellers
     })
   } catch (error) {
     console.log(error.name, error.message);
@@ -336,9 +342,6 @@ app.get('/all-buyers/admin', verifyJWT, verifyAdmin, async (req, res) => {
     })
   }
 })
-
-
-
 
 
 app.post('/bookings', verifyJWT, async (req, res) => {
@@ -400,6 +403,26 @@ app.get('/products/:id', verifyJWT, async (req, res) => {
     })
   }
 })
+
+
+
+// Delete Product By Seller 
+app.delete('/products/:id', verifyJWT, async (req, res) => {
+  try {
+    if (req.decoded.email !== req.query.email) {
+      return res.status(403).send({ success: false, message: 'Unauthorized Access' })
+    }
+    const { id } = req.params
+    const result = await Services.deleteOne({ _id: ObjectId(id) });
+    console.log(result);
+    res.send({ success: true, data: result })
+  } catch (error) {
+    console.log(error.name, error.message)
+    res.send({ success: false, error: error.message })
+  }
+})
+
+
 
 app.get('', async (req, res) => {
   res.send('Aero server in running...')
