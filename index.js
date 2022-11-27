@@ -199,7 +199,7 @@ app.get('/jwt', async (req, res) => {
 
 
 // Get Admin 
-app.get('/users/admin/:email', async (req, res) => {
+app.get('/users/admin/:email', verifyJWT, async (req, res) => {
   try {
     const { email } = req.params;
     const user = await Users.findOne({ email })
@@ -223,7 +223,8 @@ app.get('/users/:email', async (req, res) => {
 
     res.send({
       success: true,
-      data: result
+      role: result.role,
+      verified: result.verified
     })
 
   } catch (error) {
@@ -252,6 +253,39 @@ app.get('/all-sellers', verifyJWT, verifyAdmin, async (req, res) => {
     })
   }
 })
+
+
+app.put('/sellers/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email } = req.query;
+    const filter = { _id: ObjectId(id) }
+    const options = { upsert: true };
+
+    const updateDoc = {
+      $set: {
+        verified: true
+      }
+    }
+
+    const result = await Users.updateOne(filter, updateDoc, options)
+    const allProducts = await Services.updateMany({ sellerEmail: email }, updateDoc);
+
+    if (result.modifiedCount) {
+      res.send({
+        success: true,
+        data: result
+      })
+    }
+  } catch (error) {
+    console.log(error);
+    res.send({
+      success: false,
+      error: error.message
+    });
+  }
+})
+
 
 
 // Delete Seller 
@@ -284,12 +318,14 @@ app.post('/bookings', verifyJWT, async (req, res) => {
       email: booking.userEmail,
       name: booking.name
     }
+
     const allReadyBooked = await Bookings.find(query).toArray();
     if (allReadyBooked?.length) {
       const message = `You already have a booking on ${booking.brand, booking.name}`
       res.send({ success: false, message })
       return;
     }
+
     const result = await Bookings.insertOne(booking);
     // console.log(result);
     res.send({
@@ -333,7 +369,6 @@ app.get('/products/:id', verifyJWT, async (req, res) => {
     })
   }
 })
-
 
 app.get('', async (req, res) => {
   res.send('Aero server in running...')
