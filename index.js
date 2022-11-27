@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 require('dotenv').config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 
 const app = express();
 
@@ -59,6 +60,7 @@ const Services = client.db('aero-db').collection('services');
 const Categories = client.db('aero-db').collection('categories');
 const Bookings = client.db('aero-db').collection('bookings');
 const Users = client.db('aero-db').collection('users');
+const Payments = client.db('aero-db').collection('payments');
 
 
 // // Verify Admin
@@ -337,12 +339,8 @@ app.get('/all-buyers/admin/', verifyJWT, verifyAdmin, async (req, res) => {
 
     const decoded = req.decoded;
     if (decoded.email !== req.query.email) {
-      return res.status(403).send({
-        success: false,
-        message: 'Unauthorized Access'
-      })
+      return res.status(403).send({ success: false, message: 'Unauthorized Access' })
     }
-
 
     const sellers = await Users.find({ role: 'User' }).toArray();
     res.send({
@@ -359,6 +357,21 @@ app.get('/all-buyers/admin/', verifyJWT, verifyAdmin, async (req, res) => {
 })
 
 
+// get Specific booking 
+app.get('/bookings/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const booking = await Bookings.findOne({ _id: ObjectId(id) });
+    // console.log(booking);
+    res.send({ success: true, data: booking });
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({ success: false, error: error.message })
+  }
+
+})
+
+
 app.post('/bookings', verifyJWT, async (req, res) => {
   try {
     const bookings = req.body;
@@ -372,6 +385,70 @@ app.post('/bookings', verifyJWT, async (req, res) => {
     res.send({ success: false, error: error.message })
   }
 })
+
+
+
+//Payment Intent
+app.post("/create-payment-intent", async (req, res) => {
+  try {
+    const { price } = req.body;
+    const amount = Number(price * 100);
+    // Create a PaymentIntent with the order amount and currency
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: "usd",
+      "payment_method_types": [
+        "card"
+      ],
+    });
+
+    res.send({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+});
+
+
+
+// Save payment information
+app.post('/payments', async (req, res) => {
+  try {
+    const payment = req.body;
+    const result = await Payments.insertOne(payment);
+
+    const id = payment.bookingId;
+    const filter = { _id: ObjectId(id) }
+    const updateDoc = {
+      $set: {
+        paid: true,
+        transactionId: payment.transactionId,
+      }
+    }
+
+    const udpdatedResult = await Bookings.updateOne(filter, updateDoc);
+    const updatedServices = await Services.updateOne({ _id: ObjectId(payment.productId) }, { $set: { sold: true } })
+
+    res.send({
+      success: true,
+      data: result
+    })
+  } catch (error) {
+    console.log(error);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
+
 
 
 // Get Seller Products 
