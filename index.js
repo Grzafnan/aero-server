@@ -113,6 +113,11 @@ app.get('/services/:id', async (req, res) => {
 
 app.post('/add-services', verifyJWT, async (req, res) => {
   try {
+
+    if (req.decoded.email !== req.query.email) {
+      return res.status(403).send({ success: false, message: 'Unauthorized Access' })
+    }
+
     const result = await Services.insertOne(req.body)
     res.send({
       success: true,
@@ -145,7 +150,17 @@ app.get('/categories', async (req, res) => {
   }
 })
 
+app.get('/advertise', async (req, res) => {
+  try {
+    const result = await Services.find({ advertise: true }).sort({ $natural: -1 }).toArray();
+    console.log(result);
+    res.send({ success: true, data: result })
 
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({ success: false, error: error.message })
+  }
+})
 
 
 
@@ -382,7 +397,7 @@ app.get('/products/:id', verifyJWT, async (req, res) => {
     const { id } = req.params;
     const { email } = req.query;
     const user = await Users.findOne({ email: email });
-    console.log('user', user);
+    // console.log('user', user);
     if (!user?.role === "Seller") {
       return res.send({ success: false, message: 'Forbidden access' })
     }
@@ -401,6 +416,27 @@ app.get('/products/:id', verifyJWT, async (req, res) => {
       success: false,
       error: error.message
     })
+  }
+})
+
+
+//Advertise Product By Seller
+app.put('/advertise/:id', verifyJWT, async (req, res) => {
+  try {
+    if (req.decoded.email !== req.query.email) {
+      return res.status(403).send({ success: false, message: 'Unauthorized Access' })
+    }
+    const { id } = req.params;
+    const result = await Services.updateOne({ _id: ObjectId(id) }, { $set: req.body });
+
+    if (result.modifiedCount) {
+      res.send({ success: true, data: result });
+    }
+
+
+  } catch (error) {
+    console.log(error.message);
+    res.send({ success: false, error: error.message });
   }
 })
 
