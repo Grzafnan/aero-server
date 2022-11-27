@@ -361,32 +361,15 @@ app.get('/all-buyers/admin/', verifyJWT, verifyAdmin, async (req, res) => {
 
 app.post('/bookings', verifyJWT, async (req, res) => {
   try {
-    const booking = req.body;
-    const query = {
-      brand: booking.brand,
-      email: booking.userEmail,
-      name: booking.name
-    }
+    const bookings = req.body;
 
-    const allReadyBooked = await Bookings.find(query).toArray();
-    if (allReadyBooked?.length) {
-      const message = `You already have a booking on ${booking.brand, booking.name}`
-      res.send({ success: false, message })
-      return;
-    }
-
-    const result = await Bookings.insertOne(booking);
+    const result = await Bookings.insertOne(bookings);
+    const updateService = await Services.updateOne({ _id: ObjectId(bookings.serviceId) }, { $set: { isBooked: true } })
     // console.log(result);
-    res.send({
-      success: true,
-      data: result
-    })
+    res.send({ success: true, data: result })
   } catch (error) {
     console.log(error.name, error.message);
-    res.send({
-      success: false,
-      error: error.message
-    })
+    res.send({ success: false, error: error.message })
   }
 })
 
@@ -397,25 +380,37 @@ app.get('/products/:id', verifyJWT, async (req, res) => {
     const { id } = req.params;
     const { email } = req.query;
     const user = await Users.findOne({ email: email });
-    // console.log('user', user);
     if (!user?.role === "Seller") {
       return res.send({ success: false, message: 'Forbidden access' })
     }
-    console.log('role-', user?.role)
-
+    // console.log('role-', user?.role)
     const result = await Services.find({ sellerEmail: email, sellerId: id }).toArray();
-
-    res.send({
-      success: true,
-      data: result
-    })
+    res.send({ success: true, data: result })
 
   } catch (error) {
     console.log(error.message);
-    res.send({
-      success: false,
-      error: error.message
-    })
+    res.send({ success: false, error: error.message })
+  }
+})
+
+
+// my Bookings 
+app.get('/my-bookings/:id', verifyJWT, async (req, res) => {
+  try {
+    const decoded = req.decoded;
+    if (decoded.email !== req.query.email) {
+      return res.status(403).send({
+        success: false,
+        message: 'Unauthorized Access'
+      })
+    }
+    const { id } = req.params;
+    const bookings = await Bookings.find({ userUid: id, userEmail: req.query.email }).toArray();
+    res.send({ success: true, data: bookings })
+
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({ success: false, error: error.message })
   }
 })
 
@@ -428,17 +423,18 @@ app.put('/advertise/:id', verifyJWT, async (req, res) => {
     }
     const { id } = req.params;
     const result = await Services.updateOne({ _id: ObjectId(id) }, { $set: req.body });
-
     if (result.modifiedCount) {
       res.send({ success: true, data: result });
     }
-
 
   } catch (error) {
     console.log(error.message);
     res.send({ success: false, error: error.message });
   }
 })
+
+
+
 
 
 
