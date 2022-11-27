@@ -288,9 +288,18 @@ app.put('/sellers/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
 
 
 
-// Delete Seller 
+// Delete Seller By Admin
 app.delete('/all-sellers/:id', verifyJWT, verifyAdmin, async (req, res) => {
   try {
+
+    const decoded = req.decoded;
+    if (decoded.email !== req.query.email) {
+      return res.status(403).send({
+        success: false,
+        message: 'Unauthorized Access'
+      })
+    }
+
     const { id } = req.params;
     // console.log(id);
     const user = await Users.deleteOne({ _id: ObjectId(id) });
@@ -306,6 +315,28 @@ app.delete('/all-sellers/:id', verifyJWT, verifyAdmin, async (req, res) => {
     })
   }
 })
+
+
+app.get('/all-buyers/admin', verifyJWT, verifyAdmin, async (req, res) => {
+  try {
+    if (req.query.email !== req.decoded.email) {
+      return res.status(403).send({ success: false, message: 'Forbidden access' });
+    }
+
+    const buyers = await Users.find({ role: 'User' }).toArray();
+    res.send({
+      success: true,
+      data: buyers
+    })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
 
 
 
