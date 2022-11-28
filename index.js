@@ -362,6 +362,24 @@ app.get('/all-reports/admin', verifyJWT, verifyAdmin, async (req, res) => {
   }
 })
 
+// delete service 
+app.delete('/reports/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
+  try {
+    const decoded = req.decoded;
+    if (decoded.email !== req.query.email) {
+      return res.status(403).send({ success: false, message: 'Unauthorized Access' })
+    }
+    const { id } = req.params;
+    const deleteService = await Services.deleteOne({ _id: ObjectId(req.query.serviceId) })
+    const result = await Reports.deleteOne({ _id: ObjectId(id) })
+    res.send({ success: true, data: result })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({ success: false, error: error.message })
+  }
+})
+
+
 // Reports post API 
 app.post('/reports/:id', verifyJWT, async (req, res) => {
   try {
