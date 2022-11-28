@@ -58,8 +58,9 @@ run();
 
 const Services = client.db('aero-db').collection('services');
 const Categories = client.db('aero-db').collection('categories');
-const Bookings = client.db('aero-db').collection('bookings');
 const Users = client.db('aero-db').collection('users');
+const Bookings = client.db('aero-db').collection('bookings');
+const Reports = client.db('aero-db').collection('reports');
 const Payments = client.db('aero-db').collection('payments');
 
 
@@ -360,6 +361,36 @@ app.get('/all-buyers/admin/', verifyJWT, verifyAdmin, async (req, res) => {
 })
 
 
+// Reports post API 
+app.post('/reports/:id', verifyJWT, async (req, res) => {
+  try {
+
+    const decoded = req.decoded;
+    if (decoded.email !== req.query.email) {
+      return res.status(403).send({
+        success: false,
+        message: 'Unauthorized Access'
+      })
+    }
+    const report = req.body;
+    // console.log(report);
+    const isExists = await Reports.findOne({ userEmail: report.userEmail, serviceId: report.serviceId })
+
+    if (isExists) {
+      return res.send({ success: false, message: 'Already reported to Admin!' })
+    }
+
+    const result = await Reports.insertOne(report);
+    // console.log('368-', result);
+    res.send({ success: true, data: result })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({ success: false, error: error.message });
+  }
+})
+
+
+
 // get Specific booking 
 app.get('/bookings/:id', async (req, res) => {
   try {
@@ -512,8 +543,6 @@ app.put('/advertise/:id', verifyJWT, async (req, res) => {
     res.send({ success: false, error: error.message });
   }
 })
-
-
 
 
 
