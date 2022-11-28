@@ -95,8 +95,11 @@ app.get('/services', async (req, res) => {
 })
 
 
-app.get('/services/:id', async (req, res) => {
+app.get('/services/:id', verifyJWT, async (req, res) => {
   try {
+    if (req.decoded.email !== req.query.email) {
+      return res.status(403).send({ success: false, message: 'Unauthorized Access' })
+    }
     const { id } = req.params;
     const service = await Services.find({ category: Number(id) }).toArray();
     res.send({
@@ -155,7 +158,7 @@ app.get('/categories', async (req, res) => {
 app.get('/advertise', async (req, res) => {
   try {
     const result = await Services.find({ advertise: true }).sort({ $natural: -1 }).toArray();
-    console.log(result);
+    // console.log(result);
     res.send({ success: true, data: result })
 
   } catch (error) {
@@ -418,7 +421,7 @@ app.post("/create-payment-intent", async (req, res) => {
 
 
 // Save payment information
-app.post('/payments', async (req, res) => {
+app.post('/payments', verifyJWT, async (req, res) => {
   try {
     const payment = req.body;
     const result = await Payments.insertOne(payment);
@@ -433,7 +436,7 @@ app.post('/payments', async (req, res) => {
     }
 
     const udpdatedResult = await Bookings.updateOne(filter, updateDoc);
-    const updatedServices = await Services.updateOne({ _id: ObjectId(payment.productId) }, { $set: { sold: true } })
+    const updatedServices = await Services.updateOne({ _id: ObjectId(payment.productId) }, { $set: { sold: true, advertise: false } })
 
     res.send({
       success: true,
