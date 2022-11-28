@@ -95,7 +95,7 @@ app.get('/services', async (req, res) => {
   }
 })
 
-
+//Get single service
 app.get('/services/:id', verifyJWT, async (req, res) => {
   try {
     if (req.decoded.email !== req.query.email) {
@@ -116,25 +116,17 @@ app.get('/services/:id', verifyJWT, async (req, res) => {
   }
 })
 
-
+// post services 
 app.post('/add-services', verifyJWT, async (req, res) => {
   try {
-
     if (req.decoded.email !== req.query.email) {
       return res.status(403).send({ success: false, message: 'Unauthorized Access' })
     }
-
     const result = await Services.insertOne(req.body)
-    res.send({
-      success: true,
-      data: result
-    })
+    res.send({ success: true, data: result })
   } catch (error) {
     console.log(error.name, error.message);
-    res.send({
-      success: false,
-      error: error.message
-    })
+    res.send({ success: false, error: error.message })
   }
 })
 
@@ -143,19 +135,14 @@ app.post('/add-services', verifyJWT, async (req, res) => {
 app.get('/categories', async (req, res) => {
   try {
     const category = await Categories.find({}).toArray();
-    res.send({
-      success: true,
-      data: category
-    })
+    res.send({ success: true, data: category })
   } catch (error) {
     console.log(error.name, error.message);
-    res.send({
-      success: false,
-      error: error.message
-    })
+    res.send({ success: false, error: error.message })
   }
 })
 
+//get Advertise 
 app.get('/advertise', async (req, res) => {
   try {
     const result = await Services.find({ advertise: true }).sort({ $natural: -1 }).toArray();
@@ -360,11 +347,24 @@ app.get('/all-buyers/admin/', verifyJWT, verifyAdmin, async (req, res) => {
   }
 })
 
+// GEt all reports 
+app.get('/all-reports/admin', verifyJWT, verifyAdmin, async (req, res) => {
+  try {
+    const decoded = req.decoded;
+    if (decoded.email !== req.query.email) {
+      return res.status(403).send({ success: false, message: 'Unauthorized Access' })
+    }
+    const allReports = await Reports.find({}).toArray();
+    res.send({ success: true, data: allReports })
+  } catch (error) {
+    console.log(error.name, error.message);
+    res.send({ success: false, error: error.message })
+  }
+})
 
 // Reports post API 
 app.post('/reports/:id', verifyJWT, async (req, res) => {
   try {
-
     const decoded = req.decoded;
     if (decoded.email !== req.query.email) {
       return res.status(403).send({
@@ -379,7 +379,6 @@ app.post('/reports/:id', verifyJWT, async (req, res) => {
     if (isExists) {
       return res.send({ success: false, message: 'Already reported to Admin!' })
     }
-
     const result = await Reports.insertOne(report);
     // console.log('368-', result);
     res.send({ success: true, data: result })
@@ -388,7 +387,6 @@ app.post('/reports/:id', verifyJWT, async (req, res) => {
     res.send({ success: false, error: error.message });
   }
 })
-
 
 
 // get Specific booking 
